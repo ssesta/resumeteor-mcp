@@ -1,0 +1,73 @@
+# Kitchen Sink — your dossier. Single source of truth for resume content.
+#
+# This is the TEMPLATE. Copy it to kitchen-sink/profile.yaml (or run
+#   python scripts/init_dossier.py
+# ) and fill it in with your own history. Tailoring (the /tailor skill in Claude
+# Code) SELECTS / REORDERS / REFRAMES from this — it never invents facts.
+#
+# Conventions:
+#   - Dates: "YYYY-MM" (or just "YYYY"). Use "Present" for ongoing roles.
+#   - Set `general: false` on a bullet to keep it OUT of the general resume but
+#     still available for per-job tailoring.
+#   - Add as much as you can — the richer this is, the better tailoring gets.
+
+identity:
+  name: "TODO Your Name"
+  pronouns: ""
+  headline: "TODO short positioning line (e.g. 'Staff Engineer · Distributed Systems')"
+  location: "TODO City, ST"
+  email: "TODO you@example.com"        # the address to show on resumes
+  phone: ""
+  website: ""
+  linkedin: ""
+  github: ""
+
+summary: |
+  TODO 2–4 sentence professional summary. /tailor rewrites this per job, so keep
+  the kitchen-sink version broad and factual.
+
+experience:
+  # Duplicate this block per role, most recent first.
+  - company: "TODO Company"
+    location: ""
+    title: "TODO Title"
+    start: "YYYY-MM"
+    end: "Present"
+    blurb: ""               # optional one-line context (e.g. acquisition note)
+    technologies: []
+    bullets:
+      - text: "TODO accomplishment — action + scope + result. Prefer real metrics."
+        tags: []
+        general: true
+      - text: "TODO another bullet; set general: false to reserve it for tailoring."
+        tags: []
+        general: false
+
+education:
+  - institution: "TODO School"
+    location: ""
+    degree: "TODO Degree"
+    field: "TODO Field"
+    start: ""
+    end: "YYYY"
+    gpa: ""
+    honors: []
+    coursework: []
+
+skills:
+  - group: "TODO Group (e.g. Languages)"
+    items: []
+  - group: "TODO Group (e.g. Domains)"
+    items: []
+
+certifications: []
+projects: []
+awards: []
+publications: []
+talks: []
+languages: []
+volunteer: []
+
+notes: |
+  TODO — anything you want available for tailoring but not forced onto every
+  resume: war stories, context, validated skills, employment-gap explanations.

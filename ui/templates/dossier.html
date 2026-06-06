@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Build your dossier · JobSearch{% endblock %}
+{% block content %}
+<style>
+  .ok { border-left:4px solid #34a565; background:#f3fbf5; }
+  .todo { border-left:4px solid #d98324; background:#fff8f0; }
+  .drop { border:2px dashed #b9c6da; border-radius:10px; padding:22px; text-align:center;
+          color:#5b6675; cursor:pointer; }
+  .drop.over { background:#eef4ff; border-color:#1f6feb; }
+  .srcs { list-style:none; padding:0; }
+  .srcs li { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.85em; color:#33405a; }
+  ol.li li { margin:.4em 0; }
+  q { color:#1f6feb; font-weight:600; font-style:italic; }
+</style>
+
+<h1>Build your dossier</h1>
+<p class="hint">Your <strong>dossier</strong> is the “kitchen sink” of everything you’ve done. Drop in raw
+material here — a résumé, a LinkedIn export, pasted text, screenshots — and your AI turns it into your
+profile. The richer it is, the better every tailored résumé becomes.</p>
+
+{% if ready.ready %}
+<section class="card ok">
+  <h2 style="margin-top:0">✅ Your dossier is ready</h2>
+  <p>There’s enough here to build and improve your <strong>standard résumé</strong>.</p>
+  <a class="button" href="{{ url_for('general') }}">Build / improve my standard résumé →</a>
+  <p class="hint">In your AI app say <q>refresh my standard résumé</q> (Claude Code: <code>/refresh-general</code>).
+  Keep adding material below anytime to make it stronger.</p>
+</section>
+{% else %}
+<section class="card todo">
+  <h2 style="margin-top:0">⛏️ Let’s fill in your dossier</h2>
+  <p>Still needed before we can build your standard résumé: <strong>{{ ready.missing|join(', ') }}</strong>.</p>
+  <p class="hint">Add material below, then tell your AI: <q>read my dossier sources and fill in my profile
+  and narrative.</q> Once the basics are in, this turns green.</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>1 · Upload files</h2>
+  <p class="hint">Résumé (PDF/Word), certificates, a LinkedIn export <code>.zip</code> — anything. Saved
+  into your dossier so your AI can read it.</p>
+  <form method="post" action="{{ url_for('dossier_upload') }}" enctype="multipart/form-data">
+    <label class="drop" id="drop">
+      <input type="file" name="files" multiple style="display:none" id="fileinput">
+      <span id="droplabel">Click to choose files, or drag &amp; drop here</span>
+    </label>
+    <button type="submit" style="margin-top:10px">Upload to dossier</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>2 · Paste text</h2>
+  <p class="hint">A job description you held, an accomplishment, a bio — anything about your experience.
+  It’s appended to your dossier’s narrative.</p>
+  <form method="post" action="{{ url_for('dossier_paste_text') }}">
+    <input type="text" name="label" placeholder="Short label (e.g. “Acme — what I did”)"
+           style="width:100%;margin-bottom:8px">
+    <textarea name="text" rows="6" placeholder="Paste here…"></textarea>
+    <button type="submit">Add to dossier</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>3 · Paste a screenshot</h2>
+  <p class="hint">Copy an image (e.g. a screenshot of your résumé or LinkedIn profile), click the box,
+  and paste (⌘V / Ctrl-V). It’s saved into your dossier’s sources.</p>
+  <div class="drop" id="paste" tabindex="0">Click here, then paste an image (⌘V / Ctrl-V)</div>
+  <p class="hint" id="pastemsg"></p>
+</section>
+
+<section class="card">
+  <h2>📥 Get your full LinkedIn export <small>(the richest single source)</small></h2>
+  <ol class="li">
+    <li>On LinkedIn: <strong>Me → Settings &amp; Privacy</strong>.</li>
+    <li><strong>Data privacy → Get a copy of your data</strong>.</li>
+    <li>Pick <strong>“Want something in particular? Select the data files you’re most interested in”</strong>
+        and tick <strong>Profile, Positions, Education, Skills, Certifications, Honors, Recommendations,
+        Languages</strong> (or just request the larger full archive).</li>
+    <li>Click <strong>Request archive</strong>. LinkedIn emails a download link — often within ~10 minutes;
+        the complete archive can take up to 24 hours.</li>
+    <li>Download the <code>.zip</code> and <strong>upload it in step 1 above</strong> — it’s filed into your
+        dossier’s <code>linkedin/</code> folder.</li>
+  </ol>
+  <p class="hint">Then tell your AI: <q>read my LinkedIn export and fill in my profile and narrative.</q></p>
+</section>
+
+<section class="card">
+  <h2>What’s in your dossier so far</h2>
+  {% if sources or linkedin_files %}
+    <ul class="srcs">
+      {% for s in sources %}<li>sources/{{ s }}</li>{% endfor %}
+      {% for s in linkedin_files %}<li>linkedin/{{ s }}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">Nothing added yet — start above.</p>
+  {% endif %}
+  <p class="hint">These live in your dossier (<code>kitchen-sink/</code>), the same place your AI reads
+  from. After adding material, ask your AI to update your profile — then build your standard résumé above.</p>
+</section>
+
+<script>
+  var drop = document.getElementById('drop'),
+      fi = document.getElementById('fileinput'),
+      dl = document.getElementById('droplabel');
+  drop.addEventListener('click', function () { fi.click(); });
+  fi.addEventListener('change', function () {
+    dl.textContent = fi.files.length ? (fi.files.length + ' file(s) selected — click Upload')
+                                     : 'Click to choose files, or drag & drop here';
+  });
+  ['dragover', 'dragenter'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (ev) {
+    fi.files = ev.dataTransfer.files;
+    dl.textContent = fi.files.length + ' file(s) ready — click Upload';
+  });
+
+  var pasteBox = document.getElementById('paste'), msg = document.getElementById('pastemsg');
+  pasteBox.addEventListener('paste', function (ev) {
+    var items = (ev.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) {
+        var blob = items[i].getAsFile(), r = new FileReader();
+        r.onload = function () {
+          fetch('{{ url_for("dossier_paste_image") }}', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_data_url: r.result })
+          }).then(function (x) { return x.json(); }).then(function (d) {
+            msg.textContent = d.ok ? ('Saved ' + d.name + ' to your dossier ✓')
+                                   : ('Error: ' + (d.error || 'failed'));
+          });
+        };
+        r.readAsDataURL(blob); ev.preventDefault(); return;
+      }
+    }
+    msg.textContent = 'No image found in the clipboard — copy an image first.';
+  });
+</script>
+{% endblock %}

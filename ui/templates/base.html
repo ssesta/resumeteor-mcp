@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}JobSearch{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">JobSearch</a>
+      <nav>
+        <a href="{{ url_for('index') }}">Jobs</a>
+        <a href="{{ url_for('dossier_page') }}">Build dossier</a>
+        <a href="{{ url_for('general') }}">General resume</a>
+        <a href="{{ url_for('install_page') }}">Install / Share</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash">
+        {% for cat, msg in messages %}
+          <li class="flash-{{ cat }}">{{ msg }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "resumeteor-mcp"
+version = "0.1.0"
+description = "Local MCP server for honest, subscription-billed resume tailoring — the reasoning runs in your AI chat client, your files stay on your machine."
+readme = "INSTALL.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Shane Sesta" }]
+keywords = ["mcp", "resume", "job-search", "claude", "ats"]
+dependencies = [
+  "mcp>=1.2",
+  "PyYAML>=6,<7",
+  "python-docx>=1.2,<2",
+  "requests>=2.31,<3",
+  "beautifulsoup4>=4.12,<5",
+  "lxml>=5",
+  "playwright>=1.40,<2",   # headless capture fallback + PDF rendering
+  "flask>=3,<4",           # the local dashboard app
+  "markdown>=3.6,<4",      # render job descriptions / analysis in the app
+]
+
+[project.scripts]
+resumeteor-mcp = "resumeteor_mcp.server:main"
+resumeteor-app = "resumeteor_mcp.app_launcher:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["resumeteor_mcp"]
+
+# Bundle the project's logic, templates, and skill prompts inside the wheel so an
+# installed copy is self-contained (server.py resolves these under _bundled/).
+[tool.hatch.build.targets.wheel.force-include]
+"scripts" = "resumeteor_mcp/_bundled/scripts"
+"templates" = "resumeteor_mcp/_bundled/templates"
+".claude/commands" = "resumeteor_mcp/_bundled/.claude/commands"
+"docs" = "resumeteor_mcp/_bundled/docs"
+"ui" = "resumeteor_mcp/_bundled/ui"

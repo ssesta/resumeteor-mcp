@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}{{ slug }} · JobSearch{% endblock %}
+{% block content %}
+
+<nav class="breadcrumb"><a href="{{ url_for('index') }}">← Jobs</a></nav>
+
+<h1>{{ job_yaml_parsed.get('company') or '—' }} · {{ job_yaml_parsed.get('role') or slug }}</h1>
+{% if job_yaml_parsed.get('url') %}
+  <p><a href="{{ job_yaml_parsed.get('url') }}" target="_blank" rel="noopener">{{ job_yaml_parsed.get('url') }}</a></p>
+{% endif %}
+
+<style>
+  html { scroll-behavior: smooth; }
+  .progress { display:flex; flex-wrap:wrap; gap:2px; margin:14px 0 20px; }
+  .pstep { flex:1 1 0; min-width:88px; text-decoration:none; display:flex; flex-direction:column;
+           align-items:center; gap:5px; position:relative; padding-top:4px; color:#8a93a3; }
+  .pstep::before { content:""; position:absolute; top:17px; left:-50%; width:100%; height:3px; background:#e3e7ee; z-index:0; }
+  .pstep:first-child::before { display:none; }
+  .pdot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+          font-size:.78em; font-weight:700; background:#e3e7ee; color:#8a93a3; z-index:1; }
+  .plabel { font-size:.71em; line-height:1.15; text-align:center; max-width:12ch; }
+  .pstep.done { color:#2f7d4f; }
+  .pstep.done .pdot { background:#34a565; color:#fff; }
+  .pstep.done::before { background:#34a565; }
+  .pstep.current { color:#16447e; font-weight:700; }
+  .pstep.current .pdot { background:#1f6feb; color:#fff; box-shadow:0 0 0 4px #cfe0ff; }
+  .pstep.current::before { background:#34a565; }
+  .pstep:hover .plabel { text-decoration:underline; }
+  details.state-card > summary { cursor:pointer; font-weight:600; color:#555; }
+</style>
+<nav class="progress" aria-label="Application progress">
+  {% for s in progress.stages %}
+    <a class="pstep {{ s.status }}" href="{{ s.anchor }}" title="Go to: {{ s.label }}">
+      <span class="pdot">{% if s.status == 'done' %}✓{% else %}{{ loop.index }}{% endif %}</span>
+      <span class="plabel">{{ s.label }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+<details class="card state-card state-{{ state }}">
+  <summary>Status &amp; manual overrides — <strong>{{ state }}</strong>{% if state_explicit %} (set){% endif %}</summary>
+  <div class="state-row">
+    <span class="state-badge state-{{ state }}">{{ state }}{% if state_explicit %} (set){% endif %}</span>
+    <span class="state-cta">Next: {{ next_step }}</span>
+  </div>
+  <div class="state-actions">
+    <form method="post" action="{{ url_for('set_state', slug=slug) }}" class="inline-form">
+      <input type="hidden" name="state" value="ready">
+      <button type="submit" {% if state in ('ready','submitted','interviewing','closed') %}disabled{% endif %}>Mark approved (ready)</button>
+    </form>
+    <form method="post" action="{{ url_for('set_state', slug=slug) }}" class="inline-form">
+      <input type="hidden" name="state" value="submitted">
+      <button type="submit" {% if state in ('submitted','interviewing','closed') %}disabled{% endif %}>Mark submitted</button>
+    </form>
+    <form method="post" action="{{ url_for('set_state', slug=slug) }}" class="inline-form">
+      <input type="hidden" name="state" value="interviewing">
+      <button type="submit" {% if state in ('interviewing','closed') %}disabled{% endif %}>Mark interviewing</button>
+    </form>
+    <form method="post" action="{{ url_for('set_state', slug=slug) }}" class="inline-form">
+      <input type="hidden" name="state" value="closed">
+      <button type="submit" {% if state == 'closed' %}disabled{% endif %}>Mark closed</button>
+    </form>
+    {% if state_explicit %}
+      <form method="post" action="{{ url_for('set_state', slug=slug) }}" class="inline-form">
+        <input type="hidden" name="state" value="auto">
+        <button type="submit" class="secondary">Reset (auto)</button>
+      </form>
+    {% endif %}
+  </div>
+</details>
+
+{% if not capture_complete %}
+<section class="card" style="border-left:4px solid #d98324; background:#fff8f0;">
+  <h2 style="margin-top:0">⚠️ Capture looks incomplete</h2>
+  <p>The automated capture appears to be missing:
+  <strong>{{ capture_missing|join(', ') or 'content' }}</strong>.
+  Run <code>/capture-job jobs/{{ slug }}</code> in Claude Code to extract the full
+  posting from the screenshot, or paste the missing parts into the job description below.
+  {% if has_screenshot %}<a href="{{ url_for('screenshot', slug=slug) }}" target="_blank">View screenshot</a>.{% endif %}</p>
+</section>
+{% endif %}
+
+<div class="grid-2">
+
+  <section class="card">
+    <h2>Metadata <small>(job.yaml)</small></h2>
+    <form method="post" action="{{ url_for('save_file', slug=slug, fname='job.yaml') }}">
+      <textarea name="content" rows="10">{{ job_yaml }}</textarea>
+      <button type="submit">Save</button>
+    </form>
+  </section>
+
+  <section class="card" id="tailoring">
+    <h2>Create tailored resume</h2>
+    <p>In your AI app (connected via the Resumeteor MCP) run the <strong>tailor</strong> prompt for this
+    job — or just say:</p>
+    <pre class="copy">Tailor my resume for jobs/{{ slug }}</pre>
+    <p>Then have it reviewed (<em>“critique jobs/{{ slug }}”</em>) or re-capture the posting
+    (<em>“capture jobs/{{ slug }}”</em>). In Claude Code you can use the slash commands directly:
+    <code>/tailor jobs/{{ slug }}</code> · <code>/critique jobs/{{ slug }}</code> ·
+    <code>/capture-job jobs/{{ slug }}</code>.</p>
+  </section>
+
+</div>
+
+<section class="card" id="capture">
+  <h2>Job description <small>(job-description.md)</small></h2>
+  <details>
+    <summary>Edit raw markdown</summary>
+    <form method="post" action="{{ url_for('save_file', slug=slug, fname='job-description.md') }}">
+      <textarea name="content" rows="16">{{ description_md }}</textarea>
+      <button type="submit">Save</button>
+    </form>
+  </details>
+  <div class="prose">{{ description_html | safe }}</div>
+</section>
+
+{% if has_screenshot %}
+<section class="card">
+  <h2>Screenshot</h2>
+  <p><a href="{{ url_for('screenshot', slug=slug) }}" target="_blank">Open full size</a></p>
+  <img src="{{ url_for('screenshot', slug=slug) }}" alt="Job posting screenshot" class="screenshot">
+</section>
+{% endif %}
+
+{% if has_analysis %}
+<section class="card">
+  <h2>Analysis <small>(analysis.md, from /tailor)</small></h2>
+  <div class="prose">{{ analysis_html | safe }}</div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Tailored resume source <small>(resume-source.yaml)</small></h2>
+  {% if has_tailored %}
+    <details>
+      <summary>Edit YAML</summary>
+      <form method="post" action="{{ url_for('save_file', slug=slug, fname='resume-source.yaml') }}">
+        <textarea name="content" rows="22" class="mono">{{ resume_source }}</textarea>
+        <button type="submit">Save</button>
+      </form>
+    </details>
+  {% else %}
+    <p class="empty">No tailored source yet. Run <code>/tailor jobs/{{ slug }}</code> in Claude Code.</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('build_job_route', slug=slug) }}" class="inline-form">
+    <button type="submit">Build resume</button>
+  </form>
+  {% if has_resume %}
+    <a class="button" href="{{ url_for('download_resume', slug=slug) }}">Download .docx</a>
+  {% endif %}
+  {% if has_pdf %}
+    <a class="button" href="{{ url_for('download_resume_pdf', slug=slug) }}">Download .pdf</a>
+  {% endif %}
+  {% if has_html %}
+    <a class="button" href="{{ url_for('resume_html', slug=slug) }}" target="_blank">Open HTML</a>
+  {% endif %}
+</section>
+
+{% if has_html or has_tailored %}
+<section class="card">
+  <h2>Preview</h2>
+  <div class="preview-toolbar">
+    <button id="mode-preview" type="button" class="mode-btn active">Preview</button>
+    <button id="mode-edit"    type="button" class="mode-btn">Edit inline</button>
+    <span class="hint" style="margin-left:auto">In Edit mode, changes save automatically as soon as you click somewhere else — no Save button. Click <strong>Build resume</strong> above to refresh the downloadable .docx and .pdf.</span>
+  </div>
+  <iframe id="preview-frame"
+          src="{% if has_html %}{{ url_for('resume_html', slug=slug) }}{% else %}{{ url_for('resume_edit', slug=slug) }}{% endif %}"
+          class="resume-preview" title="Resume preview"></iframe>
+  <script>
+    (function() {
+      const frame = document.getElementById('preview-frame');
+      const previewUrl = {% if has_html %}"{{ url_for('resume_html', slug=slug) }}"{% else %}null{% endif %};
+      const editUrl    = "{{ url_for('resume_edit', slug=slug) }}";
+      const bP = document.getElementById('mode-preview');
+      const bE = document.getElementById('mode-edit');
+      if (!previewUrl) { bP.disabled = true; bE.classList.add('active'); }
+      bP.onclick = () => { if (!previewUrl) return; frame.src = previewUrl; bP.classList.add('active'); bE.classList.remove('active'); };
+      bE.onclick = () => { frame.src = editUrl; bE.classList.add('active'); bP.classList.remove('active'); };
+    })();
+  </script>
+</section>
+{% endif %}
+
+<section class="card" id="apply">
+  <h2>Apply</h2>
+  <p class="hint">Make final edits in the preview above (they autosave), click
+  <strong>Build resume</strong> to refresh the downloadable files, then submit your
+  application. When you've applied, check the box — the job moves to <strong>Applied</strong>,
+  greys out in the list, and drops out of <code>/tailor -all</code> / <code>-refreshall</code>.</p>
+  <form method="post" action="{{ url_for('set_applied', slug=slug) }}">
+    <label class="applied-check" style="display:inline-flex;align-items:center;gap:8px;font-size:1.05em;">
+      <input type="checkbox" name="applied" onchange="this.form.submit()" {% if applied %}checked{% endif %}>
+      <strong>Application Submitted</strong>
+    </label>
+  </form>
+  {% if has_resume %}<a class="button" href="{{ url_for('download_resume', slug=slug) }}">Download .docx</a>{% endif %}
+  {% if has_pdf %}<a class="button" href="{{ url_for('download_resume_pdf', slug=slug) }}">Download .pdf</a>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Custom content for this job <small>(custom-content.md)</small></h2>
+  <p class="hint">Add details that aren't in the kitchen sink yet but matter for this role —
+  a specific project story, a domain-specific bullet, a referral note, anything.
+  When you next run <code>/tailor jobs/{{ slug }}</code>, Claude will read this as
+  additional context. Use <strong>Promote to kitchen sink</strong> to also append
+  it (with provenance) to <code>kitchen-sink/narrative.md</code> so it's available
+  for future jobs.</p>
+  <form method="post" action="{{ url_for('save_custom_content', slug=slug) }}">
+    <textarea name="content" rows="10">{{ custom_content }}</textarea>
+    <button type="submit">Save</button>
+  </form>
+  {% if has_custom %}
+    <form method="post" action="{{ url_for('promote_custom', slug=slug) }}" class="inline-form">
+      <button type="submit" class="secondary">Promote to kitchen sink</button>
+    </form>
+  {% endif %}
+</section>
+
+{% if has_questions %}
+<section class="card" id="followup">
+  <style>
+    .qa { border:1px solid #e2e2e2; border-radius:6px; padding:10px 12px; margin:10px 0; }
+    .qa-promoted { border-color:#bcd9bc; background:#f6fbf6; }
+    .qa-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .qa-tag { font-size:.72em; text-transform:uppercase; letter-spacing:.03em; background:#eef; color:#334; padding:1px 6px; border-radius:10px; }
+    .qa-tag.done { background:#dff0df; color:#264d26; }
+    .qa-attach { font-size:.8em; color:#666; }
+    .qa-why { margin:.35em 0 .1em; font-size:.85em; color:#555; }
+    .qa-gap { margin:.1em 0 .5em; font-size:.85em; color:#8a5a00; }
+    .qa-prompt { display:block; font-weight:600; margin:.2em 0 .35em; }
+    .qa textarea { width:100%; }
+  </style>
+  <h2>Background questions <small>({{ questions|length }}, from /tailor)</small></h2>
+  <p class="hint">Gaps and over-claims the tailoring + critic surfaced — places you may have real
+  experience the dossier doesn't capture yet. Answer what you can (specifics: scope, numbers, names,
+  dates) — each <strong>saves automatically</strong> when you move to the next. Then <strong>Save to dossier</strong> appends them to
+  <code>kitchen-sink/narrative.md</code> with provenance. Re-run <code>/tailor jobs/{{ slug }}</code>
+  afterward and the next resume gets stronger. <em>Save to dossier before re-running /tailor, or
+  unsaved answers may be overwritten.</em></p>
+
+  <form method="post" action="{{ url_for('save_answers', slug=slug) }}">
+    {% for q in questions %}
+      <div class="qa{% if q.promoted %} qa-promoted{% endif %}">
+        <div class="qa-head">
+          <strong>{{ q.theme or q.id }}</strong>
+          {% if q.priority %}<span class="qa-tag">{{ q.priority }}</span>{% endif %}
+          {% if q.attach_to %}<span class="qa-attach">→ {{ q.attach_to }}</span>{% endif %}
+          {% if q.promoted %}<span class="qa-tag done">in dossier · {{ q.promoted }}</span>{% endif %}
+        </div>
+        {% if q.why %}<p class="qa-why">{{ q.why }}</p>{% endif %}
+        {% if q.dossier_gap %}<p class="qa-gap">Gap: {{ q.dossier_gap }}</p>{% endif %}
+        <label class="qa-prompt" for="answer__{{ q.id }}">{{ q.prompt }}</label>
+        <textarea id="answer__{{ q.id }}" name="answer__{{ q.id }}" rows="3">{{ q.answer or '' }}</textarea>
+      </div>
+    {% endfor %}
+    <button type="submit">Save answers</button>
+  </form>
+  <form method="post" action="{{ url_for('promote_answers', slug=slug) }}" class="inline-form">
+    <button type="submit" class="secondary">Save to dossier</button>
+  </form>
+  <form method="post" action="{{ url_for('skip_questions', slug=slug) }}" class="inline-form">
+    <button type="submit" class="secondary" title="Move to Ready to Apply without answering these">Skip → Ready to Apply</button>
+  </form>
+  <script>
+  (function () {
+    var saveUrl = "{{ url_for('save_answer', slug=slug) }}";
+    document.querySelectorAll('#followup textarea[name^="answer__"]').forEach(function (ta) {
+      ta.dataset.saved = ta.value;
+      ta.addEventListener('blur', function () {
+        if (ta.value === ta.dataset.saved) return;   // unchanged → skip
+        fetch(saveUrl, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: ta.name.replace(/^answer__/, ''), answer: ta.value })
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+          if (d && d.ok) {
+            ta.dataset.saved = ta.value;
+            ta.style.outline = '2px solid #8bd0a0';
+            setTimeout(function () { ta.style.outline = ''; }, 900);
+          }
+        }).catch(function () { /* keep the text in the box if the save fails */ });
+      });
+    });
+  })();
+  </script>
+</section>
+{% endif %}
+
+<section class="card lint">
+  <h2>Quality check</h2>
+  {% if lint_errors %}
+    <p class="lint-summary error">{{ lint_errors|length }} error(s) — build is blocked until fixed.</p>
+    <ul>
+      {% for f in lint_errors %}
+        <li><strong>{{ f.code }}</strong> at <code>{{ f.location }}</code>: <span class="snip">{{ f.snippet }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if lint_warnings %}
+    <p class="lint-summary warn">{{ lint_warnings|length }} AI-tell warning(s) — review and rewrite in your own voice if any sound off.</p>
+    <ul>
+      {% for f in lint_warnings %}
+        <li><strong>{{ f.message }}</strong> at <code>{{ f.location }}</code>: <span class="snip">{{ f.snippet }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if not lint_errors and not lint_warnings %}
+    <p class="empty">Clean.</p>
+  {% endif %}
+</section>
+
+{% endblock %}

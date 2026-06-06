@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install Resumeteor</title>
+<style>
+  :root { --blue:#1f6feb; --ink:#1a2330; --muted:#5b6675; --line:#e3e7ee; --bg:#f6f8fc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:780px; margin:0 auto; padding:28px 20px 70px; }
+  h1 { font-size:1.7rem; line-height:1.2; margin:.2em 0 .1em; }
+  .lead { color:var(--muted); font-size:1.05rem; margin:.4em 0 1.6em; }
+  .lead b { color:var(--ink); }
+  .step { background:#fff; border:1px solid var(--line); border-radius:12px;
+          padding:18px 20px; margin:0 0 18px; box-shadow:0 1px 3px rgba(20,40,80,.04); }
+  .step h2 { font-size:1.18rem; margin:.1em 0 .5em; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .step h2 small { color:var(--muted); font-weight:400; font-size:.85rem; }
+  .num { background:var(--blue); color:#fff; width:28px; height:28px; border-radius:50%;
+         display:inline-flex; align-items:center; justify-content:center; font-size:.95rem; flex:none; }
+  .os { margin:10px 0; }
+  pre.copy { position:relative; background:#0e1726; color:#e7eefc; border-radius:8px;
+             padding:13px 44px 13px 14px; overflow:auto; font-size:.84rem;
+             font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; cursor:pointer; margin:.4em 0; }
+  pre.copy::after { content:"Copy"; position:absolute; top:8px; right:8px; font:600 .68rem sans-serif;
+                    color:#9fb3d6; background:#1c2940; border-radius:5px; padding:2px 7px; }
+  pre.copy.copied::after { content:"Copied ✓"; color:#7ee2a8; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:.6em 0 1em; }
+  .tab { border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:20px;
+         padding:7px 14px; font-size:.9rem; cursor:pointer; font-weight:600; }
+  .tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .panel { display:none; } .panel.show { display:block; }
+  .panel h3 { font-size:1rem; margin:1em 0 .3em; }
+  .tip, .note { color:var(--muted); font-size:.9rem; }
+  .note { background:#fff8ef; border-left:3px solid #e0a23c; padding:8px 12px; border-radius:6px; margin:.7em 0; }
+  ol.use li { margin:.5em 0; }
+  q { font-style:italic; color:var(--blue); font-weight:600; }
+  code { background:#eef1f7; border-radius:4px; padding:1px 5px; font-size:.85em; }
+  .shot { display:block; width:100%; max-width:660px; border:1px solid var(--line);
+          border-radius:8px; box-shadow:0 1px 5px rgba(20,40,80,.10); margin:.7em 0 .3em; }
+  .cap { color:var(--muted); font-size:.82rem; margin:.1em 0 1em; }
+  .foot { color:var(--muted); font-size:.88rem; margin-top:26px; text-align:center; }
+  a { color:var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>📄 Resumeteor — tailor résumés with the AI you already pay for</h1>
+  <p class="lead">Two small pieces run on your own computer and work together:
+  <b>🖥️ the app</b> (your dashboard — add jobs, build your dossier, get Word/PDF files, track each
+  application) and <b>🤖 your AI</b> (does the actual writing — on your existing
+  <b>Anthropic, OpenAI, Google, or Microsoft</b> subscription, <b>no API key, no extra cost</b>).
+  Setup is three copy-pastes.</p>
+
+  <div class="step">
+    <h2><span class="num">1</span> Install “uv” <small>(one time, ~30 seconds — needed for both pieces)</small></h2>
+    <div class="os">🍎 <b>Mac</b> — open <b>Terminal</b>, paste, press Return:
+      <pre class="copy">curl -LsSf https://astral.sh/uv/install.sh | sh</pre></div>
+    <div class="os">🪟 <b>Windows</b> — open <b>PowerShell</b>, paste, press Enter:
+      <pre class="copy">irm https://astral.sh/uv/install.ps1 | iex</pre></div>
+    <p class="tip">Close the terminal and open a fresh one afterward.</p>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">2</span> Connect your AI <small>(the brains — this installs the MCP)</small></h2>
+    <p>Pick the AI app you use and do its one step. This lets it read &amp; write your résumé files and do
+    the tailoring on your subscription.</p>
+    <div class="tabs">
+      <button class="tab active" data-t="claude">Claude · Anthropic</button>
+      <button class="tab" data-t="codex">Codex · OpenAI</button>
+      <button class="tab" data-t="gemini">Gemini · Google</button>
+      <button class="tab" data-t="copilot">Copilot · Microsoft</button>
+    </div>
+
+    <div class="panel show" id="claude">
+      <h3>Claude Desktop (easiest)</h3>
+      <p><b>Settings → Developer → Edit Config</b>, paste this (add the <code>"resumeteor"</code> block if
+      <code>mcpServers</code> already exists), save, and <b>fully quit and reopen Claude</b>.</p>
+      <pre class="copy">{
+  "mcpServers": {
+    "resumeteor": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/ssesta/resumeteor-mcp", "resumeteor-mcp"]
+    }
+  }
+}</pre>
+      <h3>…or Claude Code (terminal)</h3>
+      <pre class="copy">claude mcp add resumeteor -- uvx --from git+https://github.com/ssesta/resumeteor-mcp resumeteor-mcp</pre>
+    </div>
+
+    <div class="panel" id="codex">
+      <h3>Codex CLI</h3>
+      <p>One command in your terminal, then run <code>codex</code> and chat:</p>
+      <pre class="copy">codex mcp add resumeteor -- uvx --from git+https://github.com/ssesta/resumeteor-mcp resumeteor-mcp</pre>
+      <div class="note">The ChatGPT <em>desktop app</em> only connects to web-hosted tools, so use the
+      <b>Codex CLI</b> for Resumeteor.</div>
+    </div>
+
+    <div class="panel" id="gemini">
+      <h3>Gemini CLI</h3>
+      <p>Open <code>~/.gemini/settings.json</code> (create it if needed), paste this, save, run <code>gemini</code>:</p>
+      <pre class="copy">{
+  "mcpServers": {
+    "resumeteor": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/ssesta/resumeteor-mcp", "resumeteor-mcp"]
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="panel" id="copilot">
+      <h3>VS Code + GitHub Copilot</h3>
+      <p>Create <code>.vscode/mcp.json</code> in your project (the key is <b><code>servers</code></b>,
+      not <code>mcpServers</code>), then open Copilot Chat in <b>Agent</b> mode:</p>
+      <pre class="copy">{
+  "servers": {
+    "resumeteor": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/ssesta/resumeteor-mcp", "resumeteor-mcp"]
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">3</span> Run the app <small>(your dashboard — recommended)</small></h2>
+    <p>In a terminal, paste this. It opens the app in your browser and keeps your files in a
+    <code>Resumeteor</code> folder in your home directory — the same place your AI uses.</p>
+    <pre class="copy">uvx --from git+https://github.com/ssesta/resumeteor-mcp resumeteor-app</pre>
+    <p class="tip">Leave that window open while you use it; it opens <b>http://127.0.0.1:5050</b>.</p>
+    <p><b>Build your dossier</b> there — upload your résumé or LinkedIn export, paste text or screenshots.
+    No files to hand-edit. It tells you when you’re ready to build your standard résumé.</p>
+    <img class="shot" src="img/app-dossier.png" alt="The Build Dossier page: upload files, paste text, paste screenshots, LinkedIn export steps">
+    <p class="cap">The <b>Build Dossier</b> page.</p>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">4</span> Apply to jobs — app + AI together</h2>
+    <ol class="use">
+      <li><b>In the app</b>, paste a job link and click <b>Create job folder</b> — it captures the posting.</li>
+      <li><b>In your AI</b>, say <q>tailor my résumé for the Globex job</q>. It writes an honest tailored
+          draft plus a few follow-up questions.</li>
+      <li><b>Back in the app</b>, a progress bar shows exactly where each application stands. Answer the
+          follow-up questions (they autosave), then click <b>Build resume</b> for Word / PDF / HTML.</li>
+      <li>Submit your application, then check <b>Application Submitted</b> — it moves to <em>Applied</em>.</li>
+    </ol>
+    <img class="shot" src="img/app-job.png" alt="A job page showing the New→Applied progress bar and the tailoring step">
+    <p class="cap">A job page — the progress bar updates as each application moves from New to Applied.</p>
+    <img class="shot" src="img/app-jobs.png" alt="The dashboard: add a job, build your dossier, build your standard résumé">
+    <p class="cap">Your dashboard.</p>
+  </div>
+
+  <p class="foot">Prefer chat only? You can skip step 3 and use just your AI — the app simply makes managing
+  applications much easier.<br>
+  Honest by design: it never invents experience, only reframes what’s truly yours.<br>
+  Source &amp; details: <a href="https://github.com/ssesta/resumeteor-mcp" target="_blank" rel="noopener">github.com/ssesta/resumeteor-mcp</a></p>
+
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('show'); });
+      t.classList.add('active');
+      document.getElementById(t.dataset.t).classList.add('show');
+    });
+  });
+  document.querySelectorAll('pre.copy').forEach(function (pre) {
+    pre.addEventListener('click', function () {
+      navigator.clipboard.writeText(pre.textContent).then(function () {
+        pre.classList.add('copied');
+        setTimeout(function () { pre.classList.remove('copied'); }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>

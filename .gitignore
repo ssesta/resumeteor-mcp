@@ -1,0 +1,51 @@
+## Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+## OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
+~$*.docx
+*.tmp
+
+## Claude Code
+.claude/settings.local.json
+.agents/
+
+## Generated resume artifacts (rebuild locally with `python scripts/build_resume.py`)
+general-resume/*.docx
+general-resume/*.pdf
+general-resume/*.html
+
+## Per-job generated artifacts (rebuild locally)
+jobs/*/resume.docx
+jobs/*/resume.pdf
+jobs/*/resume.html
+jobs/*/job-source.html
+jobs/*/job-screenshot.png
+jobs/*/capture.log
+
+## Raw LinkedIn data (kept local; profile.yaml is the committed source of truth)
+kitchen-sink/linkedin/*.pdf
+kitchen-sink/linkedin/*.zip
+kitchen-sink/linkedin/*.csv
+kitchen-sink/linkedin/*.json
+kitchen-sink/linkedin/export/
+kitchen-sink/linkedin/Verifications/
+kitchen-sink/linkedin/Jobs/
+
+## Local before/after backups (kept on disk for diffing, never committed)
+*.prev.*
+
+## Packaging / build artifacts
+dist/
+build/
+*.egg-info/
+resumeteor_mcp/_bundled/
+
+## Raw dossier uploads (résumés, screenshots, exports — kept local; profile.yaml/narrative.md are the committed source of truth)
+kitchen-sink/sources/

@@ -1,0 +1,1 @@
+"""Resumeteor MCP server package."""

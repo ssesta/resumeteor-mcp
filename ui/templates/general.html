@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}General resume · JobSearch{% endblock %}
+{% block content %}
+
+<nav class="breadcrumb"><a href="{{ url_for('index') }}">← Jobs</a></nav>
+<h1>General-purpose resume</h1>
+
+<section class="card">
+  <h2>Build</h2>
+  <form method="post" action="{{ url_for('build_general_route') }}" class="inline-form">
+    <button type="submit">Rebuild from kitchen sink</button>
+  </form>
+  {% if built %}
+    <a class="button" href="{{ url_for('download_general') }}">Download .docx</a>
+    {% if has_pdf %}<a class="button" href="{{ url_for('download_general_pdf') }}">Download .pdf</a>{% endif %}
+    {% if has_html %}<a class="button" href="{{ url_for('general_html') }}" target="_blank">Open HTML</a>{% endif %}
+    <p class="hint">Last built mtime: {{ mtime | int }}</p>
+  {% else %}
+    <p class="empty">No artifact yet. Click rebuild.</p>
+  {% endif %}
+</section>
+
+{% if has_html %}
+<section class="card">
+  <h2>Preview</h2>
+  <iframe src="{{ url_for('general_html') }}" class="resume-preview" title="Resume preview"></iframe>
+</section>
+{% endif %}
+
+<section class="card lint">
+  <h2>Quality check</h2>
+  {% if lint_errors %}
+    <p class="lint-summary error">{{ lint_errors|length }} error(s) — build is blocked until fixed.</p>
+    <ul>
+      {% for f in lint_errors %}
+        <li><strong>{{ f.code }}</strong> at <code>{{ f.location }}</code>: <span class="snip">{{ f.snippet }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if lint_warnings %}
+    <p class="lint-summary warn">{{ lint_warnings|length }} AI-tell warning(s).</p>
+    <ul>
+      {% for f in lint_warnings %}
+        <li><strong>{{ f.message }}</strong> at <code>{{ f.location }}</code>: <span class="snip">{{ f.snippet }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if not lint_errors and not lint_warnings %}
+    <p class="empty">Clean.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Kitchen sink <small>(kitchen-sink/profile.yaml)</small></h2>
+  <form method="post" action="{{ url_for('save_kitchen_sink') }}">
+    <textarea name="content" rows="32" class="mono">{{ kitchen_sink_yaml }}</textarea>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
+{% endblock %}

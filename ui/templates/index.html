@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Jobs · JobSearch{% endblock %}
+{% block content %}
+
+<section class="card">
+  <h2>Add a job</h2>
+  <form method="post" action="{{ url_for('create_job') }}" class="stacked">
+    <label>
+      Job URL
+      <input type="url" name="url" required placeholder="https://...">
+    </label>
+    <div class="row">
+      <label>
+        Company (optional)
+        <input type="text" name="company">
+      </label>
+      <label>
+        Role (optional)
+        <input type="text" name="role">
+      </label>
+    </div>
+    <label class="inline">
+      <input type="checkbox" name="capture" checked>
+      Try to capture the posting automatically
+    </label>
+    <button type="submit">Create job folder</button>
+  </form>
+  <p class="hint">For LinkedIn / Workday / Greenhouse-private postings, automated capture usually fails.
+  Open the URL in Chrome and use the Claude Chrome extension, then paste into <code>job-description.md</code>.</p>
+</section>
+
+<section class="card">
+  <h2>General-purpose resume</h2>
+  {% if general_built %}
+    <p>Last built: {{ general_mtime | int }}. <a href="{{ url_for('download_general') }}">Download .docx</a></p>
+  {% else %}
+    <p>Not built yet. <a href="{{ url_for('general') }}">Build it</a>.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Install / Share Resumeteor</h2>
+  <p>Set it up on any Mac or Windows computer with your <strong>Anthropic, OpenAI,
+  Google, or Microsoft</strong> AI subscription — or send the same guide to someone else.</p>
+  <p>
+    <a class="button" href="{{ url_for('install_page') }}">Open the install &amp; setup guide →</a>
+  </p>
+  <p class="hint">Public shareable link:
+    <a href="https://ssesta.github.io/resumeteor-mcp/" target="_blank" rel="noopener">https://ssesta.github.io/resumeteor-mcp/</a>
+    (works once GitHub Pages finishes its first build).</p>
+</section>
+
+<section class="card">
+  <h2>Jobs ({{ jobs | length }})</h2>
+  <p class="hint">Tip: click a <strong>Company</strong> or <strong>Role</strong> cell to edit it inline — changes save automatically.</p>
+  {% if not jobs %}
+    <p class="empty">No jobs yet. Paste a URL above to start.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Added</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>State</th>
+          <th>Next step</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for j in jobs %}
+        <tr class="{% if j.applied %}applied-row{% endif %}">
+          <td>{{ j.date_added }}</td>
+          <td class="editable" contenteditable="true" data-slug="{{ j.slug }}" data-field="company">{{ j.company }}</td>
+          <td class="editable" contenteditable="true" data-slug="{{ j.slug }}" data-field="role">{{ j.role }}</td>
+          <td>
+            {% if j.applied %}<span class="state-badge state-submitted">Applied</span>
+            {% else %}<span class="state-badge state-{{ j.state }}">{{ j.state }}</span>
+              {% if not j.capture_complete %}<span class="cap-flag" title="Missing: {{ j.capture_missing|join(', ') }}">⚠ capture</span>{% endif %}
+            {% endif %}
+          </td>
+          <td class="next-step">{{ j.next_step }}</td>
+          <td><a href="{{ url_for('view_job', slug=j.slug) }}">Open →</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+
+<style>
+  td.editable { cursor: text; border-bottom: 1px dashed #bcd; }
+  td.editable:focus { outline: 2px solid #6a8; background: #fffdf3; }
+  td.editable:empty::before { content: "—"; color: #bbb; }
+  td.editable.saved { background: #eafaea; transition: background .4s ease; }
+  td.editable.save-error { background: #fdeaea; }
+  .cap-flag { display:inline-block; margin-left:6px; font-size:.72em; font-weight:600; color:#8a4b00; background:#ffe9cc; border-radius:10px; padding:1px 7px; cursor:help; }
+  tr.applied-row { opacity:.5; }
+  tr.applied-row td.editable { opacity:1; }
+</style>
+<script>
+(function () {
+  document.querySelectorAll('td.editable').forEach(function (cell) {
+    cell.dataset.orig = cell.textContent.trim();
+    cell.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); cell.blur(); }
+    });
+    cell.addEventListener('blur', function () {
+      var val = cell.textContent.trim();
+      if (val === cell.dataset.orig) return;
+      fetch('/jobs/' + encodeURIComponent(cell.dataset.slug) + '/meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field: cell.dataset.field, value: val })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        cell.classList.remove('save-error');
+        if (d && d.ok) {
+          cell.dataset.orig = val;
+          cell.classList.add('saved');
+          setTimeout(function () { cell.classList.remove('saved'); }, 1200);
+        } else { cell.classList.add('save-error'); }
+      }).catch(function () { cell.classList.add('save-error'); });
+    });
+  });
+})();
+</script>
+
+{% endblock %}
